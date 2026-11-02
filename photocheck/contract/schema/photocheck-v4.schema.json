@@ -1,0 +1,626 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photocheck.local/schema/photocheck-v4.schema.json",
+  "title": "PhotoCheck v4 record",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ImageDescriptor"
+    },
+    {
+      "$ref": "#/$defs/Detection"
+    },
+    {
+      "$ref": "#/$defs/Decision"
+    },
+    {
+      "$ref": "#/$defs/RedactionPlan"
+    },
+    {
+      "$ref": "#/$defs/VerificationReport"
+    }
+  ],
+  "$defs": {
+    "ContractVersion": {
+      "const": "photocheck/v4"
+    },
+    "Identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "MaskedPreview": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "Rect": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "integer",
+          "minimum": 1
+        }
+      ],
+      "items": false,
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "NullableRect": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Rect"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "MetaSubtype": {
+      "enum": [
+        "gps",
+        "datetime",
+        "device",
+        "serial",
+        "thumbnail",
+        "software"
+      ]
+    },
+    "TextSubtype": {
+      "enum": [
+        "phone",
+        "idcard"
+      ]
+    },
+    "QrSubtype": {
+      "enum": [
+        "qr_wechat_card",
+        "qr_wechat_group",
+        "qr_wechat_pay",
+        "qr_alipay",
+        "qr_wifi",
+        "qr_vcard",
+        "qr_contact",
+        "qr_geo",
+        "qr_code",
+        "qr_link",
+        "qr_unknown"
+      ]
+    },
+    "ImageDescriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "record_type",
+        "image_id",
+        "width",
+        "height",
+        "orientation",
+        "coordinate_space"
+      ],
+      "properties": {
+        "contract_version": {
+          "$ref": "#/$defs/ContractVersion"
+        },
+        "record_type": {
+          "const": "ImageDescriptor"
+        },
+        "image_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "orientation": {
+          "const": "exif_transposed"
+        },
+        "coordinate_space": {
+          "const": "top_left_pixels"
+        }
+      }
+    },
+    "Detection": {
+      "allOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contract_version",
+            "record_type",
+            "id",
+            "image_id",
+            "kind",
+            "subtype",
+            "bbox",
+            "detector_score",
+            "evidence",
+            "risk",
+            "details"
+          ],
+          "properties": {
+            "contract_version": {
+              "$ref": "#/$defs/ContractVersion"
+            },
+            "record_type": {
+              "const": "Detection"
+            },
+            "id": {
+              "$ref": "#/$defs/Identifier"
+            },
+            "image_id": {
+              "$ref": "#/$defs/Identifier"
+            },
+            "kind": {
+              "enum": [
+                "meta",
+                "text",
+                "qr",
+                "face"
+              ]
+            },
+            "subtype": {
+              "type": "string"
+            },
+            "bbox": {
+              "$ref": "#/$defs/NullableRect"
+            },
+            "detector_score": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "evidence": {
+              "enum": [
+                "exif",
+                "ocr_rule",
+                "qr_payload",
+                "face_box"
+              ]
+            },
+            "risk": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3
+            },
+            "details": {
+              "type": "object"
+            }
+          }
+        },
+        {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "subtype",
+                "bbox",
+                "evidence",
+                "details"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "meta"
+                },
+                "subtype": {
+                  "$ref": "#/$defs/MetaSubtype"
+                },
+                "bbox": {
+                  "type": "null"
+                },
+                "evidence": {
+                  "const": "exif"
+                },
+                "details": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "masked_preview": {
+                      "$ref": "#/$defs/MaskedPreview"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "subtype",
+                "bbox",
+                "evidence",
+                "details"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "text"
+                },
+                "subtype": {
+                  "$ref": "#/$defs/TextSubtype"
+                },
+                "bbox": {
+                  "$ref": "#/$defs/Rect"
+                },
+                "evidence": {
+                  "const": "ocr_rule"
+                },
+                "details": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "masked_preview": {
+                      "$ref": "#/$defs/MaskedPreview"
+                    },
+                    "idcard_check": {
+                      "enum": [
+                        "pass",
+                        "fail",
+                        "na"
+                      ]
+                    }
+                  }
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "subtype": {
+                        "const": "idcard"
+                      }
+                    },
+                    "required": [
+                      "subtype"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "details": {
+                        "required": [
+                          "idcard_check"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "subtype",
+                "bbox",
+                "evidence",
+                "details"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "qr"
+                },
+                "subtype": {
+                  "$ref": "#/$defs/QrSubtype"
+                },
+                "bbox": {
+                  "$ref": "#/$defs/Rect"
+                },
+                "evidence": {
+                  "const": "qr_payload"
+                },
+                "details": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "decodable"
+                  ],
+                  "properties": {
+                    "decodable": {
+                      "type": "boolean"
+                    },
+                    "safe_domain": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 253
+                    },
+                    "safe_ssid": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "subtype",
+                "bbox",
+                "evidence",
+                "details"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "face"
+                },
+                "subtype": {
+                  "const": "face_region"
+                },
+                "bbox": {
+                  "$ref": "#/$defs/Rect"
+                },
+                "evidence": {
+                  "const": "face_box"
+                },
+                "details": {
+                  "type": "object",
+                  "additionalProperties": false
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "Decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "record_type",
+        "finding_id",
+        "action",
+        "revision"
+      ],
+      "properties": {
+        "contract_version": {
+          "$ref": "#/$defs/ContractVersion"
+        },
+        "record_type": {
+          "const": "Decision"
+        },
+        "finding_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "action": {
+          "enum": [
+            "redact",
+            "retain"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "RedactionItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "finding_id",
+        "bbox",
+        "method"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "finding_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bbox": {
+          "$ref": "#/$defs/Rect"
+        },
+        "method": {
+          "enum": [
+            "solid",
+            "blur",
+            "mosaic"
+          ]
+        }
+      }
+    },
+    "RedactionPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "record_type",
+        "image_id",
+        "revision",
+        "items"
+      ],
+      "properties": {
+        "contract_version": {
+          "$ref": "#/$defs/ContractVersion"
+        },
+        "record_type": {
+          "const": "RedactionPlan"
+        },
+        "image_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RedactionItem"
+          }
+        }
+      }
+    },
+    "VerificationCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "region_id",
+        "status",
+        "method"
+      ],
+      "properties": {
+        "region_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "not_run",
+            "not_applicable"
+          ]
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "Residual": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "region_id",
+        "finding_id",
+        "reason",
+        "kind",
+        "subtype",
+        "masked_summary"
+      ],
+      "properties": {
+        "region_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "finding_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "enum": [
+            "retained",
+            "verification_failed"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "meta",
+            "text",
+            "qr",
+            "face",
+            "manual"
+          ]
+        },
+        "subtype": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "masked_summary": {
+          "$ref": "#/$defs/MaskedPreview"
+        }
+      }
+    },
+    "VerificationReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "record_type",
+        "image_id",
+        "plan_revision",
+        "disposal_state",
+        "checks",
+        "residuals"
+      ],
+      "properties": {
+        "contract_version": {
+          "$ref": "#/$defs/ContractVersion"
+        },
+        "record_type": {
+          "const": "VerificationReport"
+        },
+        "image_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "plan_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "disposal_state": {
+          "enum": [
+            "not_applicable",
+            "pending",
+            "passed",
+            "failed"
+          ]
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VerificationCheck"
+          },
+          "uniqueItems": true
+        },
+        "residuals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Residual"
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}
+

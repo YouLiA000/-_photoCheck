@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PhotoCheck 系统流程图 v3</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #f5f6f8;
+      color: #2c2c2a;
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    }
+    .wrap {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 20px 24px 16px;
+      background: #ffffff;
+      border: 1px solid #e4e5e7;
+      border-radius: 14px;
+      box-shadow: 0 3px 14px rgba(28, 39, 49, 0.07);
+    }
+    svg { display: block; width: 100%; height: auto; }
+    .hint {
+      max-width: 1240px;
+      margin: 12px auto 0;
+      padding: 0 4px;
+      color: #666864;
+      font-size: 12.5px;
+      line-height: 1.8;
+    }
+    .diagram-title { font-size: 22px; font-weight: 700; fill: #242825; }
+    .diagram-subtitle { font-size: 12.5px; fill: #6b706c; }
+    .node-title { font-size: 14px; font-weight: 700; text-anchor: middle; }
+    .node-text { font-size: 12px; text-anchor: middle; }
+    .p0 { fill: #edf5fc; stroke: #3578ae; stroke-width: 1; }
+    .p0-title { fill: #174f7c; }
+    .p0-text { fill: #386c94; }
+    .p1 { fill: #fff5e9; stroke: #c56a24; stroke-width: 1.2; stroke-dasharray: 7 5; }
+    .p1-title { fill: #914713; }
+    .p1-text { fill: #9a5a2a; }
+    .output { fill: #eef7e8; stroke: #5b8435; stroke-width: 1; }
+    .output-title { fill: #31551a; }
+    .output-text { fill: #55753b; }
+    .research { fill: #f5f4f0; stroke: #92928a; stroke-width: 1; stroke-dasharray: 5 4; }
+    .research-title { fill: #444741; }
+    .research-text { fill: #62665f; }
+    .note-box { fill: #fafbfc; stroke: #d8dcdf; stroke-width: 1; }
+    .note-title { font-size: 13px; font-weight: 700; fill: #343a36; }
+    .note-text { font-size: 12px; fill: #5e6560; }
+    .edge { fill: none; stroke: #68716b; stroke-width: 1.5; stroke-linejoin: round; }
+    .edge-p1 { fill: none; stroke: #c56a24; stroke-width: 1.5; stroke-dasharray: 7 5; stroke-linejoin: round; }
+    .edge-fail { fill: none; stroke: #bd593d; stroke-width: 1.5; stroke-dasharray: 6 5; stroke-linejoin: round; }
+    .edge-return { fill: none; stroke: #888d89; stroke-width: 1.5; stroke-dasharray: 6 5; stroke-linejoin: round; }
+    .loop-label { font-size: 12px; text-anchor: middle; }
+    @media (max-width: 760px) {
+      body { padding: 8px; }
+      .wrap { padding: 8px; border-radius: 8px; }
+    }
+    @media print {
+      body { padding: 0; background: #ffffff; }
+      .wrap { max-width: none; padding: 0; border: 0; box-shadow: none; }
+      .hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1260" role="img" aria-labelledby="diagram-title diagram-desc">
+      <title id="diagram-title">PhotoCheck 系统流程图 v3</title>
+      <desc id="diagram-desc">本地图片经元数据解析、文字、二维码和可选人脸检测后，生成独立 Detection；用户决定生成 redact 或 retain，redact 区域进入 RedactionPlan；重建导出后按 revision 复检并输出 VerificationReport，同时区分用户输出与离线研究输出。</desc>
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#68716b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arrow-p1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#c56a24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arrow-fail" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#bd593d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arrow-return" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#888d89" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <rect width="1200" height="1260" fill="#ffffff"/>
+
+      <text x="36" y="42" class="diagram-title">PhotoCheck 系统流程图 v3</text>
+      <text x="36" y="68" class="diagram-subtitle">对照《功能规格卡 v1.4》与数据契约 v4 校订 · 检测、决定、计划、复检状态分离</text>
+
+      <g aria-label="图例">
+        <rect x="850" y="24" width="314" height="126" rx="10" class="note-box"/>
+        <text x="868" y="48" class="note-title">图例</text>
+        <line x1="868" y1="70" x2="906" y2="70" stroke="#3578ae" stroke-width="1.8"/>
+        <text x="918" y="74" class="note-text">基础卡 P0（结题底线）</text>
+        <line x1="868" y1="94" x2="906" y2="94" stroke="#c56a24" stroke-width="1.8" stroke-dasharray="7 5"/>
+        <text x="918" y="98" class="note-text">扩展卡 P1（可降级）</text>
+        <line x1="868" y1="118" x2="906" y2="118" stroke="#bd593d" stroke-width="1.6" stroke-dasharray="6 5"/>
+        <text x="918" y="122" class="note-text">复检失败回退 / 用户重新确认</text>
+      </g>
+
+      <g aria-label="本地图片输入">
+        <rect x="320" y="100" width="260" height="64" rx="11" class="p0"/>
+        <text x="450" y="126" class="node-title p0-title">本地图片输入</text>
+        <text x="450" y="148" class="node-text p0-text">JPG / PNG · HEIC 可选</text>
+      </g>
+
+      <g aria-label="K-01 载入与元数据解析">
+        <rect x="300" y="196" width="300" height="68" rx="11" class="p0"/>
+        <text x="450" y="222" class="node-title p0-title">K-01 载入与元数据解析</text>
+        <text x="450" y="245" class="node-text p0-text">格式校验 · EXIF 方向矫正 · 读取元数据</text>
+      </g>
+
+      <g aria-label="EXIF 元数据检测">
+        <rect x="30" y="324" width="250" height="104" rx="11" class="p0"/>
+        <text x="155" y="351" class="node-title p0-title">EXIF 元数据（K-01）</text>
+        <text x="155" y="377" class="node-text p0-text">GPS / 时间 / 设备 / 序列号</text>
+        <text x="155" y="401" class="node-text p0-text">内嵌缩略图（可能含原图）</text>
+      </g>
+
+      <g aria-label="文字检测与敏感实体识别">
+        <rect x="300" y="324" width="250" height="104" rx="11" class="p0"/>
+        <text x="425" y="351" class="node-title p0-title">K-03 OCR → K-04 规则</text>
+        <text x="425" y="377" class="node-text p0-text">手机号 / 身份证号（三态校验）</text>
+        <text x="425" y="401" class="node-text p0-text">score 仅用于排序与过滤</text>
+      </g>
+
+      <g aria-label="二维码检测解码与可选分类">
+        <rect x="570" y="324" width="250" height="104" rx="11" class="p0"/>
+        <text x="695" y="347" class="node-title p0-title">K-05 检测与解码（P0）</text>
+        <text x="695" y="370" class="node-text p0-text">解不出也标框 · 支持多码 / 条码</text>
+        <line x1="586" y1="383" x2="804" y2="383" stroke="#c56a24" stroke-width="1" stroke-dasharray="5 4"/>
+        <text x="695" y="407" class="node-text p1-text">K-06 内容分类（P1，可降级）</text>
+      </g>
+
+      <g aria-label="可选人脸检测">
+        <rect x="840" y="324" width="330" height="104" rx="11" class="p1"/>
+        <text x="1005" y="351" class="node-title p1-title">K-07 人脸检测（P1）</text>
+        <text x="1005" y="377" class="node-text p1-text">只检测区域，不识别身份</text>
+        <text x="1005" y="401" class="node-text p1-text">可整体降级为手动补框</text>
+      </g>
+
+      <g aria-label="可选风险分级">
+        <rect x="660" y="486" width="260" height="84" rx="11" class="p1"/>
+        <text x="790" y="511" class="node-title p1-title">K-10 风险分级（P1）</text>
+        <text x="790" y="535" class="node-text p1-text">severity + evidence</text>
+        <text x="790" y="555" class="node-text p1-text">score 不解释为风险概率</text>
+      </g>
+
+      <g aria-label="K-11 用户逐项确认">
+        <rect x="310" y="486" width="280" height="84" rx="11" class="p0"/>
+        <text x="450" y="511" class="node-title p0-title">K-11 用户逐项确认</text>
+        <text x="450" y="535" class="node-text p0-text">redact / retain / 手动补框</text>
+        <text x="450" y="555" class="node-text p0-text">retain 进入 VerificationReport.residuals</text>
+      </g>
+
+      <g aria-label="K-08 区域处置">
+        <rect x="310" y="610" width="280" height="84" rx="11" class="p0"/>
+        <text x="450" y="635" class="node-title p0-title">K-08 区域处置</text>
+        <text x="450" y="659" class="node-text p0-text">模糊 / 马赛克 / 纯色</text>
+        <text x="450" y="679" class="node-text p0-text">二维码强制整块实心遮盖</text>
+      </g>
+
+      <g aria-label="K-02 像素重建与导出">
+        <rect x="290" y="734" width="320" height="84" rx="11" class="p0"/>
+        <text x="450" y="759" class="node-title p0-title">K-02 像素重建与导出</text>
+        <text x="450" y="783" class="node-text p0-text">默认清除全部元数据 · 保留 sRGB ICC</text>
+        <text x="450" y="803" class="node-text p0-text">不覆盖原图，另存脱敏副本</text>
+      </g>
+
+      <g aria-label="K-09 导出后复检">
+        <rect x="290" y="858" width="320" height="90" rx="11" class="p0"/>
+        <text x="450" y="883" class="node-title p0-title">K-09 导出后复检</text>
+        <text x="450" y="907" class="node-text p0-text">EXIF / OCR / 二维码 / 人脸（启用时）</text>
+        <text x="450" y="929" class="node-text p0-text">输出 disposal_state + residuals</text>
+      </g>
+
+      <g aria-label="用户输出">
+        <rect x="310" y="990" width="280" height="84" rx="11" class="output"/>
+        <text x="450" y="1015" class="node-title output-title">用户输出</text>
+        <text x="450" y="1039" class="node-text output-text">脱敏副本 + 页内简短结论</text>
+        <text x="450" y="1059" class="node-text output-text">计数 / 处置 / 复检 / 边界说明</text>
+      </g>
+
+      <g aria-label="研究侧输出">
+        <rect x="790" y="664" width="374" height="214" rx="11" class="research"/>
+        <text x="977" y="695" class="node-title research-title">研究侧输出（非用户输出）</text>
+        <text x="814" y="728" class="note-text">测试数据集 + 标注规范（K-13 / R-01）</text>
+        <text x="814" y="757" class="note-text">评测协议 + 失败案例库（K-13 / R-02）</text>
+        <text x="814" y="786" class="note-text">脱敏有效性报告（R-02 / R-03 / R-04）</text>
+        <text x="814" y="815" class="note-text">复现包与结题材料（R-05）</text>
+        <line x1="814" y1="833" x2="1140" y2="833" stroke="#d6d5cf"/>
+        <text x="814" y="857" class="note-text">离线评测产生 · 失败样本不自动回流</text>
+      </g>
+
+      <path d="M450 164V196" class="edge" marker-end="url(#arrow)"/>
+      <path d="M450 264V292H155" class="edge"/>
+      <path d="M450 292H1005" class="edge"/>
+      <path d="M155 292V324" class="edge" marker-end="url(#arrow)"/>
+      <path d="M425 292V324" class="edge" marker-end="url(#arrow)"/>
+      <path d="M695 292V324" class="edge" marker-end="url(#arrow)"/>
+      <path d="M1005 292V324" class="edge-p1" marker-end="url(#arrow-p1)"/>
+
+      <path d="M155 428V456H450" class="edge"/>
+      <path d="M425 428V456H450" class="edge"/>
+      <path d="M695 428V456H450" class="edge"/>
+      <path d="M1005 428V456H450" class="edge-p1"/>
+      <circle cx="450" cy="456" r="3.5" fill="#68716b"/>
+      <path d="M450 456V486" class="edge" marker-end="url(#arrow)"/>
+      <path d="M450 456H790V486" class="edge-p1" marker-end="url(#arrow-p1)"/>
+      <path d="M660 528H590" class="edge-p1" marker-end="url(#arrow-p1)"/>
+
+      <path d="M450 570V610" class="edge" marker-end="url(#arrow)"/>
+      <path d="M450 694V734" class="edge" marker-end="url(#arrow)"/>
+      <path d="M450 818V858" class="edge" marker-end="url(#arrow)"/>
+      <path d="M450 948V990" class="edge" marker-end="url(#arrow)"/>
+
+      <path d="M290 892H128V652H310" class="edge-fail" marker-end="url(#arrow-fail)"/>
+      <path d="M290 926H70V528H310" class="edge-return" marker-end="url(#arrow-return)"/>
+      <text x="112" y="782" class="loop-label" fill="#bd593d" transform="rotate(-90 112 782)">复检失败：已勾选处理项仍有残留 → 返回 K-08</text>
+      <text x="54" y="738" class="loop-label" fill="#737974" transform="rotate(-90 54 738)">用户改变处理决策 → 返回 K-11</text>
+
+      <g aria-label="边界与前提">
+        <rect x="30" y="1104" width="1134" height="126" rx="10" class="note-box"/>
+        <text x="48" y="1129" class="note-title">边界与前提</text>
+        <text x="48" y="1153" class="note-text">输入域：核心为中文校园单据 / 证件 / 截图中的明确文字风险；风景照、纯人像只作扩展实验，不进入核心结论。</text>
+        <text x="48" y="1175" class="note-text">隐私纪律：原始 text / payload 仅内存持有，日志、历史与报告只存掩码；人脸只检测不识别，不作身份或属性推断。</text>
+        <text x="48" y="1197" class="note-text">复检边界：VerificationReport 绑定当前 plan_revision，只判断 RedactionPlan 区域；residuals 不含首次漏检，固定文案为“本次计划中待处理区域未发现残留”。</text>
+        <text x="48" y="1219" class="note-text">本地运行 · 原图始终不改 · 不联网（K-14 离线验证必须做） · 不作“绝对安全”或“可以放心分享”的承诺。</text>
+      </g>
+    </svg>
+  </main>
+  <div class="hint">实线为 P0 主流程；K-10 为可选旁路，降级时检测结果直接进入用户决定，不阻断闭环。红色回退仅针对 action=redact 但复检失败的计划区域；灰色回退表示用户改变 Decision，任何 revision 变化都会使旧复检结果失效。研究侧使用授权或虚构样本离线评测，不从运行时收集用户失败样本。</div>
+</body>
+</html>

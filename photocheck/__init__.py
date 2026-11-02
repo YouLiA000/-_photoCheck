@@ -1,0 +1,2 @@
+"""PhotoCheck prototype package."""
+

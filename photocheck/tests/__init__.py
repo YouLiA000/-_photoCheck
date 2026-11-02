@@ -1,0 +1,2 @@
+"""PhotoCheck automated tests."""
+
