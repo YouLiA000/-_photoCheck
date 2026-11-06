@@ -11,7 +11,7 @@
 #    见下方「坑 1」「坑 2」，这两步不能省
 powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1
 
-# 2. 跑测试（136 条，纯逻辑部分不需要模型）
+# 2. 跑测试（168 条，纯逻辑部分不需要模型）
 C:/venvs/photocheck/Scripts/python.exe -m pytest tests -q
 
 # 3. 一张图出结果
@@ -91,6 +91,7 @@ core/
     ocr.py              K-03 文字检测（双尺度 + 同行合并，支持 ROI）
     entities.py         K-04 手机号 / 身份证（MOD 11-2 三态）
     qr.py               K-05 二维码 / 一维条码（解不出也给框）
+    qr_evidence.py      未解码候选的定位符证据（1:1:3:1:1 + 三角排布）
     qr_classify.py      K-06 内容分类（纯规则，不联网）
     face.py             K-07 人脸区域（只检测不识别）
     pipeline.py         analyze() / probe_region() / detector_status()
@@ -110,7 +111,7 @@ scripts/
   smoke_detect.py       一张图 → 校验过的 Detection JSON
   make_sample.py        生成虚构样本 + 真值
   badcase_index.py      校验案例库并生成索引
-tests/                  136 条，纯逻辑部分不依赖模型
+tests/                  168 条，纯逻辑部分不依赖模型
 ```
 
 ## 对外接口（B / C 只需要这三个）

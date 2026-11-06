@@ -15,6 +15,14 @@ Three implementation rules:
    `masked_preview` and nothing else;
 3. the ID-card context keyword requirement is a switch, not hard-coded, because
    K-04's fallback needs to tighten it when false positives are high.
+
+Two rule fixes from the 2026-11-06 measurement round:
+- An 18-digit string can satisfy MOD 11-2 and still not be an ID card, because a
+  serial number can be constructed to pass. The birth-date segment has to name a
+  real date; when it does not, the match is dropped (`idcard_birth_date_valid`).
+- Phones may carry `+86` / `0086`; the old pattern missed them because of the
+  digit lookbehind (BC-0005). The country code is inside the reported span, so a
+  redaction box covers it too.
 """
 
 from __future__ import annotations
@@ -36,6 +44,7 @@ __all__ = [
     "IDCARD_CONTEXT_KEYWORDS",
     "normalize_with_index",
     "idcard_check",
+    "idcard_birth_date_valid",
     "mask_phone",
     "mask_idcard",
     "find_entities",
@@ -43,7 +52,9 @@ __all__ = [
     "blocks_to_detections",
 ]
 
-# Phone: optional +86 / 0086 country code, then 1[3-9] and 9 digits.
+# Phone: 1[3-9] followed by 9 digits, no digit on either side, optionally
+# carrying the country code. BC-0005: `+86 138 0013 8000` was missed entirely
+# because the lookbehind saw the `6`.
 PHONE_RE = re.compile(r"(?<!\d)(?:(?:\+86|0086)1[3-9]\d{9}|1[3-9]\d{9})(?!\d)")
 # ID card: 18 chars, last may be X. The checksum is evaluated separately, never
 # as part of the match, so a typo is still reported instead of silently dropped.
@@ -97,7 +108,18 @@ def idcard_check(number: str) -> str:
     return "pass" if ISO7064_CODES[total % 11] == n[17] else "fail"
 
 
-def _idcard_birth_date_valid(number: str) -> bool:
+def idcard_birth_date_valid(number: str) -> bool:
+    """Positions 7-14 must be a real calendar date.
+
+    A serial number can be built to satisfy the MOD 11-2 checksum (C's dev set
+    has one: 2026-13-32), so the checksum alone does not prove an ID card.
+    `strptime` rejects month 13, day 32 and 30 February for us.
+
+    Deliberately NOT checked: whether the date is in the future. A genuine ID
+    only ever carries a past date, but an OCR misread of one date digit can push
+    it forward, and dropping a real ID number leaks it. Calendar validity is the
+    part that cannot be reached by a plausible typo.
+    """
     try:
         birthday = datetime.strptime(number[6:14], "%Y%m%d")
     except (TypeError, ValueError):
@@ -147,11 +169,14 @@ def find_entities(text: str) -> list[EntityMatch]:
     for m in IDCARD_RE.finditer(norm):
         s, e = m.span()
         check = idcard_check(m.group(0))
+        # Reserve the span either way: an 18-digit run must never be carved up
+        # by the phone rule, whether or not we end up reporting it.
         taken.append((s, e))
-        if check == "pass" and not _idcard_birth_date_valid(m.group(0)):
-            # A valid checksum on an impossible birth date is a serial number,
-            # not a citizen ID. Keep the span reserved so the phone rule cannot
-            # carve an 11-digit substring out of it.
+        if check == "pass" and not idcard_birth_date_valid(m.group(0)):
+            # Checksum-valid but impossible birth date -> a serial number, not a
+            # citizen ID. Only the checksum-pass case is dropped: a failing
+            # checksum with an odd date is still a typo'd real number and leaks
+            # the same person, so it stays reported as `fail` / risk 2.
             continue
         found.append(
             EntityMatch(

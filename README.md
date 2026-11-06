@@ -33,7 +33,7 @@ for current work.
 - jsonschema 4.26.0
 - OpenCV 4.10.0.84
 - NumPy 1.26.4
-- External ExifTool 13.60
+- External ExifTool 13.61
 
 ExifTool is a required external prerequisite for both metadata detection and
 export verification. Run the preflight before using PhotoCheck:
@@ -52,7 +52,7 @@ ExifTool is an external program. Set `PHOTOCHECK_EXIFTOOL` to its executable, or
 install it at the default Windows path used by this project:
 
 ```text
-D:\Program Files\PhotoCheck\ExifTool\exiftool.exe
+D:\Program Files\PhotoCheck\ExifTool-13.61\exiftool.exe
 ```
 
 ## Tests

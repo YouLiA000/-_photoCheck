@@ -25,17 +25,6 @@ from photocheck.detectors.a_engine.core.detect.ocr import TextBlock
 # Fictional sample: 110101, born 1990-03-07, sequence 001, check digit 1 (MOD 11-2)
 VALID_ID = "110101199003070011"
 TAMPERED_ID = VALID_ID[:-1] + ("0" if VALID_ID[-1] != "0" else "9")
-INVALID_DATE_BODY = "11010119901332001"
-
-
-def with_check_digit(body17: str) -> str:
-    from photocheck.detectors.a_engine.core.detect.entities import (
-        ISO7064_CODES,
-        ISO7064_WEIGHTS,
-    )
-
-    total = sum(int(char) * weight for char, weight in zip(body17, ISO7064_WEIGHTS))
-    return body17 + ISO7064_CODES[total % 11]
 
 
 # ---------- check digit ----------
@@ -89,20 +78,6 @@ def test_phone_positive(text):
 @pytest.mark.parametrize(
     "text",
     [
-        "手机：+8613800138000",
-        "手机：008613800138000",
-        "TEL: +86 138 0013 8000",
-    ],
-)
-def test_phone_positive_with_country_code(text):
-    phones = [d for d in scan_text(text) if d.subtype == "phone"]
-    assert len(phones) == 1
-    assert phones[0].details["masked_preview"] == "138****8000"
-
-
-@pytest.mark.parametrize(
-    "text",
-    [
         "1380013800",  # 少一位
         "138001380001",  # 多一位
         "快递单号 7801234567890",
@@ -139,21 +114,6 @@ def test_idcard_not_swallowed_by_phone_rule():
     assert [d.subtype for d in dets] == ["idcard"]
 
 
-def test_invalid_birth_date_with_valid_checksum_is_not_an_idcard():
-    serial = with_check_digit(INVALID_DATE_BODY)
-    assert idcard_check(serial) == "pass"
-    assert [d for d in scan_text(serial) if d.subtype == "idcard"] == []
-
-
-def test_invalid_birth_date_with_bad_checksum_is_still_reported():
-    serial = with_check_digit(INVALID_DATE_BODY)
-    bad = serial[:-1] + ("0" if serial[-1] != "0" else "1")
-    ids = [d for d in scan_text(bad) if d.subtype == "idcard"]
-    assert len(ids) == 1
-    assert ids[0].details["idcard_check"] == "fail"
-    assert ids[0].risk == 2
-
-
 # ---------- context switch (K-04 fallback path) ----------
 
 def test_require_context_switch():
@@ -185,6 +145,104 @@ def test_bbox_stays_inside_block():
 def test_ids_are_unique_and_sequential():
     dets = scan_text("13800138000 与 13900139000")
     assert [d.id for d in dets] == ["det-phone-001", "det-phone-002"]
+
+
+# ---------- country code (BC-0005) ----------
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "手机：+8613800138000",
+        "手机：008613800138000",
+        "TEL: +86 138 0013 8000",
+        "手机：+86-138-0013-8000",
+        "手机：＋８６ １３８ ００１３ ８０００",  # full-width
+    ],
+)
+def test_phone_positive_with_country_code(text):
+    phones = [d for d in scan_text(text) if d.subtype == "phone"]
+    assert len(phones) == 1, f"{text}: country-code phone not recognised"
+    assert phones[0].details["masked_preview"] == "138****8000"
+    assert phones[0].risk == 2
+
+
+def test_country_code_is_inside_the_redaction_box():
+    """The `+86` is part of the number: leaving it out of the box leaves it visible."""
+    text = "手机：+8613800138000"
+    block = TextBlock(text=text, bbox=(0, 0, 190, 20), score=0.9)
+    det = blocks_to_detections([block], "img-cc")[0]
+    char_w = 190 / len(text)
+    x, _, w, _ = det.bbox
+    assert x <= 3 * char_w + 1, f"box starts at {x}, which cuts the +86 off"
+    assert x + w >= 6 * char_w - 1, "box ends before the end of the country code"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "订单号 00861380013800",  # country code but one digit short
+        "序列号 008678012345678",  # country code, then a non-mobile prefix
+    ],
+)
+def test_country_code_negative(text):
+    assert [d for d in scan_text(text) if d.subtype == "phone"] == []
+
+
+# ---------- birth date segment (BC-0010) ----------
+
+def _with_check_digit(body17: str) -> str:
+    from photocheck.detectors.a_engine.core.detect.entities import ISO7064_CODES, ISO7064_WEIGHTS
+
+    total = sum(int(c) * w for c, w in zip(body17, ISO7064_WEIGHTS))
+    return body17 + ISO7064_CODES[total % 11]
+
+
+def test_birth_date_valid_accepts_real_dates():
+    from photocheck.detectors.a_engine.core.detect.entities import idcard_birth_date_valid
+
+    assert idcard_birth_date_valid(_with_check_digit("11010119900307001")) is True
+    assert idcard_birth_date_valid(_with_check_digit("11010120000229001")) is True  # leap day
+
+
+@pytest.mark.parametrize(
+    "body17",
+    [
+        "11010119901332001",  # month 13, day 32 - C's serial number
+        "11010120230229001",  # 29 February in a non-leap year
+        "11010119900000001",  # month 0, day 0
+        "11010119661301001",  # month 66
+    ],
+)
+def test_birth_date_valid_rejects_impossible_dates(body17):
+    from photocheck.detectors.a_engine.core.detect.entities import idcard_birth_date_valid
+
+    assert idcard_birth_date_valid(_with_check_digit(body17)) is False
+
+
+def test_invalid_birth_date_with_valid_checksum_is_not_an_idcard():
+    serial = _with_check_digit("11010119901332001")
+    assert idcard_check(serial) == "pass"
+    assert [d for d in scan_text(serial) if d.subtype == "idcard"] == []
+
+
+def test_invalid_birth_date_with_bad_checksum_is_still_reported():
+    """A wrong check digit is a typo, not a reason to drop a real number."""
+    serial = _with_check_digit("11010119901332001")
+    bad = serial[:-1] + ("0" if serial[-1] != "0" else "1")
+    ids = [d for d in scan_text(bad) if d.subtype == "idcard"]
+    assert len(ids) == 1
+    assert ids[0].details["idcard_check"] == "fail"
+    assert ids[0].risk == 2
+
+
+def test_rejected_serial_still_blocks_the_phone_rule():
+    """The span stays reserved even when the ID is dropped.
+
+    Otherwise an 18-digit serial could be re-read as an 11-digit phone number and
+    the false positive would simply change subtype.
+    """
+    serial = _with_check_digit("11010119901332001")
+    assert [d.subtype for d in scan_text(serial)] == []
 
 
 def test_no_entity_returns_empty():

@@ -162,19 +162,46 @@ def test_backend_is_reported():
     assert qr_mod.backend() in {"pyzbar", "cv2"}
 
 
+# --------------------------------------------------------------------------- #
+# undecoded candidates need evidence, decoded ones do not
+# --------------------------------------------------------------------------- #
+
+# Where cv2 reported an undecodable QR on B's export: a name, a dorm address and
+# an order-like number. No code in it.
+TEXT_REGION = (152, 194, 322, 290)
+
+
 def test_cv2_fallback_rejects_dense_text_quadrilateral(monkeypatch):
-    """A failed cv2 decode is not evidence of a QR code on its own."""
+    """An undecoded cv2 quad over text must not become a `qr_unknown` record."""
     monkeypatch.setattr(qr_mod, "pyzbar_available", lambda: False)
-    img = _sample_image()
-    text_region = (152, 194, 322, 290)
-    assert qr_mod.detect_qr(img, roi=text_region) == []
+    assert qr_mod.detect_qr(_sample_image(), roi=TEXT_REGION) == []
 
 
 def test_finder_pattern_evidence_distinguishes_qr_from_text():
-    img = _sample_image()
-    arr = qr_mod.to_bgr(img)
-    gray = cv2.cvtColor(arr, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(np.array(_sample_image())[:, :, ::-1], cv2.COLOR_BGR2GRAY)
 
-    qr_bbox = _sample_qr_bbox()
-    assert qr_mod._finder_pattern_count(gray, qr_bbox) >= 3
-    assert qr_mod._finder_pattern_count(gray, (152, 194, 322, 290)) == 0
+    assert qr_mod._finder_pattern_count(gray, _sample_qr_bbox()) >= 3
+    assert qr_mod._finder_pattern_count(gray, TEXT_REGION) == 0
+
+
+def test_a_decoded_payload_is_never_gated():
+    """Proof by payload: the gate must not touch a successful decode."""
+    hits = qr_mod.detect_qr(_sample_image())
+    assert any(h.decodable for h in hits), "the gate swallowed a real decode"
+
+
+def test_multiple_codes_are_all_reported(monkeypatch):
+    """Regression: `detectMulti` returns 2 values on OpenCV 4.10.
+
+    The old code unpacked 4 and the surrounding `except` swallowed the ValueError
+    on every call, so a photo holding several codes silently yielded one.
+    """
+    monkeypatch.setattr(qr_mod, "pyzbar_available", lambda: False)
+    code = _encode(PAYLOAD)
+    canvas = np.full((420, 900, 3), 255, dtype=np.uint8)
+    h, w = code.shape[:2]
+    canvas[60 : 60 + h, 40 : 40 + w] = code
+    canvas[60 : 60 + h, 560 : 560 + w] = code
+
+    hits = qr_mod.detect_qr(canvas)
+    assert len(hits) >= 2, f"only {len(hits)} of 2 codes reported"

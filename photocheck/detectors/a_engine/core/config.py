@@ -59,10 +59,18 @@ class QrConfig:
     quiet_zone_ratio: float = 0.12
     quiet_zone_min_px: int = 8
     quiet_zone_max_px: int = 64
-    # cv2 can return quadrilateral false positives on dense text. An undecoded
-    # candidate is kept only when at least three square finder-pattern structures
-    # are present (QR symbols have three corner finders).
+
+    # --- Evidence gate for UNDECODABLE candidates -------------------------
+    # cv2 returns a quad even when it cannot decode, and on dense text that quad
+    # covers a whole address block (7 false positives on C's dev set, plus one
+    # reproduced on B's exported image). An undecoded candidate is kept only when
+    # the crop really shows QR finder patterns; a decoded payload is its own
+    # proof and is never gated.
     finder_min_count: int = 3
+    # Tolerance on the 1:1:3:1:1 module run, as a fraction of one module
+    finder_ratio_tol: float = 0.6
+    # Anything smaller cannot hold three 7x7 finders plus a data area
+    finder_min_side_px: int = 24
 
 
 @dataclass(frozen=True)

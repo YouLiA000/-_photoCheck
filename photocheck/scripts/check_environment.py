@@ -19,6 +19,7 @@ OPENCV_DISTRIBUTIONS = (
     "opencv-python-headless",
     "opencv-contrib-python-headless",
 )
+EXPECTED_EXIFTOOL_VERSION = "13.61"
 
 
 def _distribution_version(name: str) -> str | None:
@@ -53,6 +54,10 @@ def main() -> int:
     try:
         version = exiftool_version()
         print(f"[exiftool] {version}")
+        if version != EXPECTED_EXIFTOOL_VERSION:
+            problems.append(
+                f"ExifTool {EXPECTED_EXIFTOOL_VERSION} is required, found {version}"
+            )
     except MetadataScanError as exc:
         print(f"[exiftool] unavailable: {exc}")
         problems.append("ExifTool is required for metadata detection and export verification")

@@ -4,7 +4,7 @@
 
 - Python: `C:\Python311\Python311\python.exe`
 - Virtual environment: `D:\Program Files\PhotoCheck\venv`
-- ExifTool: `D:\Program Files\PhotoCheck\ExifTool\exiftool.exe`
+- ExifTool 13.61: `D:\Program Files\PhotoCheck\ExifTool-13.61\exiftool.exe`
 
 ExifTool is mandatory. If it is missing, `ingest_image()` and sanitized export
 fail closed with an actionable error rather than silently skipping metadata

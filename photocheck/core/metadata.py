@@ -9,7 +9,9 @@ import subprocess
 from pathlib import Path
 from typing import Any, Mapping
 
-DEFAULT_EXIFTOOL_PATH = Path(r"D:\Program Files\PhotoCheck\ExifTool\exiftool.exe")
+DEFAULT_EXIFTOOL_PATH = Path(
+    r"D:\Program Files\PhotoCheck\ExifTool-13.61\exiftool.exe"
+)
 
 _ALLOWED_PNG_TECHNICAL_TAGS = {
     "BitDepth",
@@ -55,7 +57,7 @@ def resolve_exiftool(explicit_path: str | os.PathLike[str] | None = None) -> Pat
             return candidate
     raise MetadataScanError(
         "ExifTool not found; set PHOTOCHECK_EXIFTOOL or install it at "
-        r"D:\Program Files\PhotoCheck\ExifTool\exiftool.exe"
+        r"D:\Program Files\PhotoCheck\ExifTool-13.61\exiftool.exe"
     )
 
 

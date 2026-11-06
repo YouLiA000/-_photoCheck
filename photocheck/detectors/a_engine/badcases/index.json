@@ -155,7 +155,7 @@
     },
     {
       "id": "BC-0009",
-      "title": "cv2 fallback reports a dense-text quadrilateral as an undecodable QR code",
+      "title": "cv2 兜底把文字区的四边形报成\"解不出的二维码",
       "found_at": "2026-11-06",
       "layer": "detection",
       "reason": "threshold",
@@ -173,7 +173,7 @@
     },
     {
       "id": "BC-0010",
-      "title": "checksum-valid 18-digit serial with an impossible birth date was reported as an ID card",
+      "title": "校验位通过但生日段非法的 18 位流水号被报成身份证",
       "found_at": "2026-11-06",
       "layer": "detection",
       "reason": "rule_miss",

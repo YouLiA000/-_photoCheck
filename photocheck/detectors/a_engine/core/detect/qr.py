@@ -24,6 +24,7 @@ from ..contract import BBox, ContractError, Detection
 from ..secret_store import SecretStore
 from ._imgutil import crop, iou, to_bgr
 from .qr_classify import classify
+from .qr_evidence import count_finder_patterns, has_qr_evidence
 
 __all__ = [
     "QRHit",
@@ -168,6 +169,74 @@ def _decode_pyzbar(proc: Any, scale: float, offset: tuple[int, int], bounds: tup
     return hits
 
 
+def _local_bbox(quad: Any, shape: tuple[int, ...]) -> BBox:
+    """Quad -> box in the coordinate space of `gray` (before the ROI offset)."""
+    xs, ys = quad[:, 0], quad[:, 1]
+    return _clamp_box(xs.min(), ys.min(), xs.max(), ys.max(), (shape[1], shape[0]))
+
+
+def _accept_undecoded(gray: Any, local_bbox: BBox, cfg: QrConfig, payload: str) -> bool:
+    """A payload is proof of a code; without one the box must show finder patterns.
+
+    This is where the false positives came from: when a decode fails cv2 still
+    returns a quad, and on dense text that quad covers an address block. Keeping
+    every such box as `qr_unknown` gave 7 false positives on C's dev set.
+    """
+    if payload:
+        return True
+    if min(local_bbox[2], local_bbox[3]) < cfg.finder_min_side_px:
+        return False
+    return has_qr_evidence(
+        gray, local_bbox, min_finders=cfg.finder_min_count, tol=cfg.finder_ratio_tol
+    )
+
+
+def _multi_quads(detector: Any, gray: Any) -> list[tuple[Any, str]]:
+    """Multi-QR detection that survives OpenCV's changing return shapes.
+
+    OpenCV 4.10: `detectMulti` -> (retval, points), detection only, while
+    `detectAndDecodeMulti` -> (retval, decoded_info, points, straight). Asking
+    `detectMulti` for four values raises ValueError on every call, and the
+    surrounding `except` turned that into "no codes here" - so a photo holding
+    several codes silently yielded at most one. Try the decoding variant first.
+    """
+    for name in ("detectAndDecodeMulti", "detectMulti"):
+        fn = getattr(detector, name, None)
+        if fn is None:
+            continue
+        try:
+            result = fn(gray)
+        except Exception:
+            continue
+        if len(result) < 2:
+            continue
+        ok = result[0]
+        decodes_payloads = len(result) >= 3
+        points = result[2] if decodes_payloads else result[1]
+        if not ok or points is None:
+            return []
+        quads: list[tuple[Any, str]] = []
+        for i, quad in enumerate(points):
+            payload = ""
+            if decodes_payloads:
+                infos = result[1]
+                if i < len(infos) and infos[i]:
+                    payload = str(infos[i])
+            quads.append((quad.reshape(-1, 2), payload))
+        return quads
+    return []
+
+
+def _finder_pattern_count(gray: Any, bbox: BBox) -> int:
+    """Verified finder patterns inside `bbox`.
+
+    Kept as a module-level name because the QR tests pin it. It counts real
+    1:1:3:1:1 structures rather than merely nested squares: the glyph `回` is
+    three nested squares, so a contour-only check scores it as a finder.
+    """
+    return count_finder_patterns(gray, bbox)
+
+
 def _decode_cv2(
     arr: Any,
     offset: tuple[int, int],
@@ -178,41 +247,22 @@ def _decode_cv2(
 
     gray = cv2.cvtColor(arr, cv2.COLOR_BGR2GRAY) if arr.ndim == 3 else arr
     detector = cv2.QRCodeDetector()
+    shape = gray.shape
     hits: list[QRHit] = []
 
-    if hasattr(detector, "detectMulti"):
-        try:
-            ok, infos, points, _ = detector.detectMulti(gray)
-        except Exception:
-            ok, infos, points = False, (), None
-        if ok and points is not None:
-            for info, quad in zip(infos, points):
-                quad = quad.reshape(-1, 2)
-                local_xs = quad[:, 0]
-                local_ys = quad[:, 1]
-                local_bbox = _clamp_box(
-                    local_xs.min(),
-                    local_ys.min(),
-                    local_xs.max(),
-                    local_ys.max(),
-                    (gray.shape[1], gray.shape[0]),
-                )
-                xs = quad[:, 0] + offset[0]
-                ys = quad[:, 1] + offset[1]
-                payload = str(info) if info else ""
-                if (
-                    not payload
-                    and _finder_pattern_count(gray, local_bbox) < cfg.finder_min_count
-                ):
-                    continue
-                hits.append(
-                    QRHit(
-                        payload=payload or None,
-                        bbox=_clamp_box(xs.min(), ys.min(), xs.max(), ys.max(), bounds),
-                        decodable=bool(payload),
-                        symbology="QRCODE",
-                    )
-                )
+    for quad, payload in _multi_quads(detector, gray):
+        if not _accept_undecoded(gray, _local_bbox(quad, shape), cfg, payload):
+            continue
+        xs = quad[:, 0] + offset[0]
+        ys = quad[:, 1] + offset[1]
+        hits.append(
+            QRHit(
+                payload=payload or None,
+                bbox=_clamp_box(xs.min(), ys.min(), xs.max(), ys.max(), bounds),
+                decodable=bool(payload),
+                symbology="QRCODE",
+            )
+        )
     if hits:
         return hits
 
@@ -223,20 +273,10 @@ def _decode_cv2(
     if points is None:
         return []
     quad = points.reshape(-1, 2)
-    local_bbox = _clamp_box(
-        quad[:, 0].min(),
-        quad[:, 1].min(),
-        quad[:, 0].max(),
-        quad[:, 1].max(),
-        (gray.shape[1], gray.shape[0]),
-    )
+    if not _accept_undecoded(gray, _local_bbox(quad, shape), cfg, payload):
+        return []
     xs = quad[:, 0] + offset[0]
     ys = quad[:, 1] + offset[1]
-    if (
-        not payload
-        and _finder_pattern_count(gray, local_bbox) < cfg.finder_min_count
-    ):
-        return []
     return [
         QRHit(
             payload=payload or None,
@@ -245,71 +285,6 @@ def _decode_cv2(
             symbology="QRCODE",
         )
     ]
-
-
-def _finder_pattern_count(gray: Any, bbox: BBox) -> int:
-    """Count nested square structures matching the QR finder pattern.
-
-    QR finder patterns contain an outer square, a light ring and an inner square.
-    Requiring three of them rejects the dense-text quadrilaterals that cv2 may
-    return when a decode fails, while preserving genuinely undecodable QR codes.
-    """
-    import cv2
-
-    x, y, width, height = bbox
-    if width <= 0 or height <= 0:
-        return 0
-    crop = gray[y : y + height, x : x + width]
-    if crop.size == 0:
-        return 0
-
-    _, binary = cv2.threshold(
-        crop,
-        0,
-        255,
-        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU,
-    )
-    contours, hierarchy = cv2.findContours(
-        binary,
-        cv2.RETR_TREE,
-        cv2.CHAIN_APPROX_SIMPLE,
-    )
-    if hierarchy is None:
-        return 0
-
-    count = 0
-    for index, contour in enumerate(contours):
-        child = hierarchy[0][index][2]
-        if child < 0:
-            continue
-        grandchild = hierarchy[0][child][2]
-        if grandchild < 0:
-            continue
-
-        chain = (index, child, grandchild)
-        areas = [abs(cv2.contourArea(contours[item])) for item in chain]
-        if areas[0] < 50 or not (areas[0] > areas[1] > areas[2] > 0):
-            continue
-        if areas[2] / areas[0] < 0.005:
-            continue
-
-        rectangles = [cv2.boundingRect(contours[item]) for item in chain]
-        centers = [
-            (rect[0] + rect[2] / 2, rect[1] + rect[3] / 2)
-            for rect in rectangles
-        ]
-        outer_size = max(rectangles[0][2], rectangles[0][3], 1)
-        max_spread = max(
-            ((centers[0][0] - cx) ** 2 + (centers[0][1] - cy) ** 2) ** 0.5
-            for cx, cy in centers[1:]
-        )
-        square_ratio = max(
-            rectangles[0][2] / max(1, rectangles[0][3]),
-            rectangles[0][3] / max(1, rectangles[0][2]),
-        )
-        if max_spread <= outer_size * 0.2 and square_ratio <= 1.8:
-            count += 1
-    return count
 
 
 def _dedupe(hits: list[QRHit], iou_thr: float) -> list[QRHit]:
