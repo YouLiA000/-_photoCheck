@@ -35,6 +35,37 @@ class AEnvelope:
         return [dict(self.image_descriptor), *(dict(item) for item in self.detections)]
 
 
+def analyze_a(image: Any, image_id: str | None = None, **kwargs: Any) -> AEnvelope:
+    """Run the vendored A engine and validate its envelope before returning it."""
+
+    from .a_engine import analyze
+
+    result = analyze(image, image_id, **kwargs)
+    payload = result.to_dict() if hasattr(result, "to_dict") else dict(result)
+    return parse_a_envelope(payload)
+
+
+def probe_a_region(
+    image: Any,
+    bbox: list[int] | tuple[int, int, int, int],
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Run A's detector probe on a final output file or in-memory image."""
+
+    from .a_engine import probe_region
+
+    result = probe_region(image, bbox, **kwargs)
+    return result.to_dict() if hasattr(result, "to_dict") else dict(result)
+
+
+def a_detector_status() -> dict[str, str]:
+    """Report availability of the vendored A engine and its QR backend."""
+
+    from .a_engine import detector_status
+
+    return detector_status()
+
+
 def load_a_envelope(path: str | Path) -> AEnvelope:
     try:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))

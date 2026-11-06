@@ -1,0 +1,60 @@
+{
+  "card": "K-03",
+  "note": "只含文件名/尺寸/耗时，不含任何识别文字",
+  "generated_at": "2026-11-02T21:04:05",
+  "env": {
+    "python": "3.11.17",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "rapidocr": "unknown"
+  },
+  "config": {
+    "min_score": 0.5,
+    "long_side": 1600,
+    "dual_scale": true,
+    "upscale": 2.0
+  },
+  "summary": {
+    "t_ocr_ms": 1715.8,
+    "w4_target_ms": 2059.0,
+    "samples": 4,
+    "median_min_ms": 1715.8,
+    "mean_min_ms": 1674.1,
+    "p95_min_ms": 2069.4,
+    "max_min_ms": 2069.4,
+    "dual_scale": true
+  },
+  "rows": [
+    {
+      "file": "clean_001.png",
+      "width": 800,
+      "height": 480,
+      "blocks": 5,
+      "min_ms": 1764.9,
+      "mean_ms": 1836.0
+    },
+    {
+      "file": "express_001.png",
+      "width": 900,
+      "height": 620,
+      "blocks": 13,
+      "min_ms": 2069.4,
+      "mean_ms": 2096.3
+    },
+    {
+      "file": "idcard_001.png",
+      "width": 760,
+      "height": 480,
+      "blocks": 6,
+      "min_ms": 1666.7,
+      "mean_ms": 1700.0
+    },
+    {
+      "file": "qr_wifi_001.png",
+      "width": 560,
+      "height": 640,
+      "blocks": 5,
+      "min_ms": 1195.3,
+      "mean_ms": 1323.0
+    }
+  ]
+}

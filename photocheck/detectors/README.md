@@ -1,20 +1,28 @@
 # Detector integration status
 
-The 2026-11-02 A delivery contains:
+The complete 2026-11-06 A v2 engine is vendored under `a_engine/`.
 
-- its strict v4 contract models;
-- one contract-alignment test suite;
-- one runtime envelope example.
+- `a_engine/core/contract.py` is the authoritative A contract.
+- `a_contract.py` is a compatibility re-export, not a second contract.
+- `a_adapter.py` validates runtime envelopes with both A and B schema rules.
+- `analyze_a()` runs OCR/entity/QR/face detection and returns an `AEnvelope`.
+- `probe_a_region()` exposes `residual_text`, `residual_qr_detected`,
+  `residual_qr_decodable`, `residual_face`, and `unavailable`.
+- Runtime `warnings` and `timings_ms` stay outside v4 records.
 
-Those artifacts are vendored as `a_contract.py` and connected through
-`a_adapter.py`, which requires both A-side and B-side validation before records
-enter the processing pipeline. Runtime `warnings` and `timings_ms` stay outside
-the v4 records.
+The vendored A tests are under `a_engine/tests/`. Run them from the repository
+root:
 
-The delivered folder does **not** contain the `core/detect` OCR, entity, QR or
-face implementation, scripts, model assets, or the README's claimed 75 tests.
-Consequently the project cannot yet call A's `analyze()` or `probe_region()`.
-The integration deliberately exposes no fake detector fallback.
+```powershell
+python -m pytest photocheck/detectors/a_engine/tests -q
+```
+
+Integrated smoke test:
+
+```powershell
+python photocheck/scripts/smoke_a_engine.py `
+  photocheck/detectors/a_engine/express_001.png
+```
 
 Audit a future delivery before copying it into the project:
 

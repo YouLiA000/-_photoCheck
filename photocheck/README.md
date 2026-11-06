@@ -6,6 +6,15 @@
 - Virtual environment: `D:\Program Files\PhotoCheck\venv`
 - ExifTool: `D:\Program Files\PhotoCheck\ExifTool\exiftool.exe`
 
+ExifTool is mandatory. If it is missing, `ingest_image()` and sanitized export
+fail closed with an actionable error rather than silently skipping metadata
+verification. Check the full runtime with:
+
+```powershell
+& 'D:\Program Files\PhotoCheck\venv\Scripts\python.exe' `
+  photocheck\scripts\check_environment.py
+```
+
 Install Python dependencies:
 
 ```powershell
@@ -43,7 +52,7 @@ deleted and `UnsafeExportError` is raised.
 - applies solid masks last so overlapping QR or solid regions cannot be weakened;
 - forces QR findings to solid even if their plan requested another method.
 
-## K-09a before detector integration
+## K-09a-d content verification
 
 `process_and_export()` runs the currently available pipeline:
 
@@ -53,13 +62,20 @@ validate v4 records
 → remove all source metadata through K-02
 → reopen final file
 → check dimensions and metadata
+→ call A probe_region() for text / QR / face regions
 → check solid regions are uniform
 → build VerificationReport
 ```
 
-Text, QR and blur/mosaic regions remain `not_applicable`/`pending` until their
-content-specific verifiers are integrated. They are never reported as passed
-merely because a mask was drawn.
+Content-specific rules:
+
+- OCR unavailable → `pending`; residual text → `failed`; clean OCR → `passed`.
+- QR unavailable → `pending`; any detected QR → `failed`, even if undecodable;
+  only `detected=0` and `decodable=0` can pass.
+- Face unavailable → `pending`; residual face region → `failed`.
+- Manual blur/mosaic regions without a content type remain `pending`.
+
+Same-detector passes do not prove human unreadability.
 
 Example:
 
@@ -95,10 +111,11 @@ contract models and the project's JSON Schema before they enter B's pipeline.
 `warnings` and `timings_ms` remain runtime status and are not inserted into v4
 records.
 
-The 2026-11-02 A delivery included its contract models and one sample envelope,
-but not the advertised OCR/entity/QR/face implementation, scripts or models.
-The adapter therefore validates A output but does not provide an `analyze()`
-fallback.
+The complete 2026-11-06 A v2 detector engine is vendored under
+`photocheck/detectors/a_engine/`. `analyze_a()` runs A's `analyze()` and applies
+both A-side and B-side contract validation before returning an `AEnvelope`.
+`probe_a_region()` exposes QR `detected`/`decodable` evidence separately for
+K-09c integration.
 
 Audit a new A archive before integration:
 
@@ -106,6 +123,14 @@ Audit a new A archive before integration:
 & 'D:\Program Files\PhotoCheck\venv\Scripts\python.exe' `
   photocheck\scripts\check_a_delivery.py `
   D:\path\to\A-delivery
+```
+
+Run the integrated A engine smoke test:
+
+```powershell
+& 'D:\Program Files\PhotoCheck\venv\Scripts\python.exe' `
+  photocheck\scripts\smoke_a_engine.py `
+  photocheck\detectors\a_engine\express_001.png
 ```
 
 Run the tests from the project root:

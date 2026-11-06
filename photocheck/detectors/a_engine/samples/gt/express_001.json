@@ -1,0 +1,45 @@
+{
+  "image_id": "express_001",
+  "image": "express_001.png",
+  "width": 900,
+  "height": 620,
+  "source": "synthetic_generated",
+  "generator": "scripts/make_sample.py",
+  "objects": [
+    {
+      "gt_id": "g-phone-1",
+      "kind": "text",
+      "subtype": "phone",
+      "bbox": [
+        230,
+        242,
+        165,
+        20
+      ]
+    },
+    {
+      "gt_id": "g-idcard-1",
+      "kind": "text",
+      "subtype": "idcard",
+      "bbox": [
+        310,
+        437,
+        216,
+        15
+      ]
+    },
+    {
+      "gt_id": "g-qr-1",
+      "kind": "qr",
+      "subtype": "qr_link",
+      "bbox": [
+        640,
+        300,
+        220,
+        220
+      ]
+    }
+  ],
+  "negative": false,
+  "note": "真值由生成参数直接记录，非检测结果反推；不含号码明文。"
+}

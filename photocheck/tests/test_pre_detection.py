@@ -218,7 +218,7 @@ class PipelineTests(unittest.TestCase):
                 "not_applicable",
             )
 
-    def test_text_detection_slot_is_ready_but_not_claimed_as_passed(self) -> None:
+    def test_text_detection_unavailable_remains_pending(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             source = directory / "source.png"
@@ -256,11 +256,14 @@ class PipelineTests(unittest.TestCase):
                     output_dir=directory / "output",
                     detections=[detection],
                     decisions=[decision],
+                    content_probe=lambda *args, **kwargs: {
+                        "unavailable": ["text"],
+                    },
                 )
             self.assertEqual(result.verification["disposal_state"], "pending")
             self.assertEqual(
                 result.verification["checks"][0]["method"],
-                "content_detector_pending",
+                "a_text_unavailable",
             )
 
     def test_manual_solid_box_passes_on_jpeg_export(self) -> None:

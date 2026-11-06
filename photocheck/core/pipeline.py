@@ -9,15 +9,17 @@ from typing import Any, Iterable, Mapping
 from photocheck.contract import validate_records
 
 from .export import SanitizedExport, sanitize_image
+from .full_recheck import full_file_recheck
 from .ingest import IngestedImage
 from .redaction import redact_ingested
-from .verification import VerificationError, verify_redacted_export
+from .verification import ContentProbe, VerificationError, verify_redacted_export
 
 
 @dataclass(frozen=True)
 class ProcessingResult:
     export: SanitizedExport
     verification: dict[str, Any]
+    full_recheck: dict[str, Any] | None = None
 
 
 def process_and_export(
@@ -28,6 +30,8 @@ def process_and_export(
     detections: Iterable[Mapping[str, Any]] = (),
     decisions: Iterable[Mapping[str, Any]] = (),
     exiftool_path: str | os.PathLike[str] | None = None,
+    content_probe: ContentProbe | None = None,
+    run_full_recheck: bool = False,
 ) -> ProcessingResult:
     """Apply redactions, export a clean copy and produce a verification report."""
 
@@ -54,9 +58,20 @@ def process_and_export(
                 detections=detections,
                 decisions=decisions,
                 exiftool_path=exiftool_path,
+                content_probe=content_probe,
             )
         except VerificationError:
             exported.output_path.unlink(missing_ok=True)
             raise
-    return ProcessingResult(export=exported, verification=report)
+    recheck = (
+        full_file_recheck(
+            str(exported.output_path),
+            plan,
+            detections,
+            decisions,
+        )
+        if run_full_recheck
+        else None
+    )
+    return ProcessingResult(export=exported, verification=report, full_recheck=recheck)
 

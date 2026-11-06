@@ -1,0 +1,23 @@
+{
+  "image_id": "idcard_001",
+  "image": "idcard_001.png",
+  "width": 760,
+  "height": 480,
+  "source": "synthetic_generated",
+  "generator": "scripts/make_sample.py",
+  "objects": [
+    {
+      "gt_id": "g-idcard-1",
+      "kind": "text",
+      "subtype": "idcard",
+      "bbox": [
+        222,
+        208,
+        270,
+        20
+      ]
+    }
+  ],
+  "negative": false,
+  "note": "真值由生成参数直接记录，非检测结果反推；不含号码明文。"
+}

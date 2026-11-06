@@ -1,0 +1,22 @@
+# PhotoCheck - detector engine (role A)
+# Runtime: Python 3.11. Do NOT use 3.13+: mediapipe / rapidocr have no wheels there.
+# Setup: uv venv --python 3.11 C:/venvs/photocheck && uv pip install -r requirements.txt
+#
+# Keep this file pure ASCII. Windows pip under the GBK code page fails to parse
+# non-ASCII comments with UnicodeDecodeError before it even resolves versions.
+
+# --- core ---
+numpy==1.26.4
+# Single OpenCV distribution only. opencv-contrib-python is a full superset of
+# opencv-python; installing both makes them write the same cv2 namespace and the
+# imported version becomes unpredictable. Do NOT add opencv-python back.
+opencv-contrib-python==4.10.0.84
+Pillow==10.4.0
+
+# --- detectors ---
+rapidocr-onnxruntime==1.4.4
+pyzbar==0.1.9
+mediapipe==0.10.14
+
+# --- dev / test ---
+pytest==8.3.3

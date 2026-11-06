@@ -1,10 +1,10 @@
-"""K-09a structural and metadata verification before OCR/QR detectors exist."""
+"""K-09 structural, metadata and detector-backed content verification."""
 
 from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Callable, Iterable, Mapping
 
 import numpy as np
 from PIL import Image
@@ -20,6 +20,9 @@ class VerificationError(ValueError):
     """Raised when a final output fails a deterministic safety check."""
 
 
+ContentProbe = Callable[..., Mapping[str, Any]]
+
+
 def verify_redacted_export(
     ingested: IngestedImage,
     output_path: str | os.PathLike[str],
@@ -29,6 +32,7 @@ def verify_redacted_export(
     detections: Iterable[Mapping[str, Any]] = (),
     decisions: Iterable[Mapping[str, Any]] = (),
     exiftool_path: str | os.PathLike[str] | None = None,
+    content_probe: ContentProbe | None = None,
 ) -> dict[str, Any]:
     """Verify a final file and return a v4 VerificationReport."""
 
@@ -60,10 +64,8 @@ def verify_redacted_export(
     if metadata_residual_tags(metadata):
         raise VerificationError("final output still contains content metadata")
 
-    checks = [
-        _verify_region(path, region, detections)
-        for region in redacted.applied_regions
-    ]
+    probe = content_probe or _default_content_probe
+    checks = [_verify_region(path, region, detections, probe) for region in redacted.applied_regions]
     return build_verification_report(
         descriptor,
         plan,
@@ -77,6 +79,7 @@ def _verify_region(
     output_path: Path,
     region: AppliedRegion,
     detections: list[dict[str, Any]],
+    content_probe: ContentProbe,
 ) -> dict[str, Any]:
     finding = next(
         (
@@ -86,12 +89,8 @@ def _verify_region(
         ),
         None,
     )
-    if finding is not None and finding["kind"] in {"text", "qr"}:
-        return {
-            "region_id": region.id,
-            "status": "not_applicable",
-            "method": "content_detector_pending",
-        }
+    if finding is not None and finding["kind"] in {"text", "qr", "face"}:
+        return _verify_finding(output_path, region, finding, content_probe)
     if region.method != "solid":
         return {
             "region_id": region.id,
@@ -124,6 +123,72 @@ def _verify_region(
         "status": "passed" if uniform else "failed",
         "method": "solid_black_region",
     }
+
+
+def _verify_finding(
+    output_path: Path,
+    region: AppliedRegion,
+    finding: Mapping[str, Any],
+    content_probe: ContentProbe,
+) -> dict[str, Any]:
+    kind = finding["kind"]
+    try:
+        evidence = content_probe(
+            output_path,
+            region.source_bbox,
+            kinds=(kind,),
+        )
+    except Exception:
+        return _check(region, "not_applicable", f"a_{kind}_probe_error")
+
+    unavailable = evidence.get("unavailable", ())
+    if kind in unavailable:
+        return _check(region, "not_applicable", f"a_{kind}_unavailable")
+
+    try:
+        if kind == "text":
+            residual = int(evidence["residual_text"])
+            status = "failed" if residual > 0 else "passed"
+            return _check(region, status, "a_ocr_probe")
+
+        if kind == "qr":
+            detected = int(evidence["residual_qr_detected"])
+            decodable = int(evidence["residual_qr_decodable"])
+            if detected < 0 or decodable < 0:
+                return _check(region, "not_applicable", "a_qr_probe_invalid")
+            if decodable > detected:
+                return _check(region, "failed", "a_qr_probe_inconsistent")
+            status = "failed" if detected > 0 or decodable > 0 else "passed"
+            return _check(region, status, "a_qr_probe")
+
+        residual = int(evidence["residual_face"])
+        status = "failed" if residual > 0 else "passed"
+        return _check(region, status, "a_face_probe")
+    except (KeyError, TypeError, ValueError):
+        return _check(region, "not_applicable", f"a_{kind}_probe_invalid")
+
+
+def _check(
+    region: AppliedRegion,
+    status: str,
+    method: str,
+) -> dict[str, str]:
+    return {
+        "region_id": region.id,
+        "status": status,
+        "method": method,
+    }
+
+
+def _default_content_probe(
+    image: Any,
+    bbox: tuple[int, int, int, int],
+    *,
+    kinds: tuple[str, ...],
+) -> Mapping[str, Any]:
+    from photocheck.detectors import probe_a_region
+
+    return probe_a_region(image, bbox, kinds=kinds)
 
 
 def _bbox_xyxy(bbox: tuple[int, int, int, int]) -> tuple[int, int, int, int]:

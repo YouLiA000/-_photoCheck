@@ -7,8 +7,14 @@ from .export import (
     sanitize_image,
     sanitize_ingested,
 )
+from .full_recheck import full_file_recheck
 from .ingest import ImageIngestError, IngestedImage, ingest_image
-from .metadata import MetadataScanError, metadata_residual_tags, read_metadata
+from .metadata import (
+    MetadataScanError,
+    exiftool_version,
+    metadata_residual_tags,
+    read_metadata,
+)
 from .pipeline import ProcessingResult, process_and_export
 from .redaction import (
     AppliedRegion,
@@ -19,7 +25,7 @@ from .redaction import (
     redact_ingested,
 )
 from .secrets import SecretStore
-from .verification import VerificationError, verify_redacted_export
+from .verification import ContentProbe, VerificationError, verify_redacted_export
 
 __all__ = [
     "ImageIngestError",
@@ -34,9 +40,12 @@ __all__ = [
     "UnsafeExportError",
     "VerificationError",
     "AppliedRegion",
+    "ContentProbe",
     "apply_redactions",
     "expand_bbox",
+    "full_file_recheck",
     "ingest_image",
+    "exiftool_version",
     "metadata_residual_tags",
     "process_and_export",
     "read_metadata",

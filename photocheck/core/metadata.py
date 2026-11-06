@@ -120,6 +120,27 @@ def read_metadata(
     return metadata
 
 
+def exiftool_version(
+    exiftool_path: str | os.PathLike[str] | None = None,
+) -> str:
+    """Return the executable version or raise a clear prerequisite error."""
+
+    exiftool = resolve_exiftool(exiftool_path)
+    try:
+        completed = subprocess.run(
+            [str(exiftool), "-ver"],
+            check=False,
+            capture_output=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise MetadataScanError("ExifTool version check failed") from exc
+    version = completed.stdout.decode("ascii", errors="replace").strip()
+    if completed.returncode != 0 or not version:
+        raise MetadataScanError("ExifTool version check returned no version")
+    return version
+
+
 def metadata_residual_tags(metadata: Mapping[str, Any]) -> tuple[str, ...]:
     """Return content metadata that is outside the sanitized technical allowlist."""
 

@@ -1,0 +1,179 @@
+{
+  "schema": "photocheck/eval/v1",
+  "iou_threshold": 0.5,
+  "images": 4,
+  "gt_total": 5,
+  "tp": 5,
+  "fp": 0,
+  "fn": 0,
+  "type_ok": 5,
+  "recall": 1.0,
+  "precision": 1.0,
+  "type_recall": 1.0,
+  "fp_per_image": 0.0,
+  "per_subtype": [
+    {
+      "subtype": "qr_link",
+      "kind": "qr",
+      "gt": 1,
+      "hit": 1,
+      "type_ok": 1,
+      "recall": 1.0,
+      "type_recall": 1.0
+    },
+    {
+      "subtype": "qr_wifi",
+      "kind": "qr",
+      "gt": 1,
+      "hit": 1,
+      "type_ok": 1,
+      "recall": 1.0,
+      "type_recall": 1.0
+    },
+    {
+      "subtype": "idcard",
+      "kind": "text",
+      "gt": 2,
+      "hit": 2,
+      "type_ok": 2,
+      "recall": 1.0,
+      "type_recall": 1.0
+    },
+    {
+      "subtype": "phone",
+      "kind": "text",
+      "gt": 1,
+      "hit": 1,
+      "type_ok": 1,
+      "recall": 1.0,
+      "type_recall": 1.0
+    }
+  ],
+  "fp_by_pred_subtype": [],
+  "type_confusion": [],
+  "timings": {
+    "text": {
+      "n": 4.0,
+      "min": 1176.1,
+      "median": 1797.1,
+      "max": 2123.4
+    },
+    "qr": {
+      "n": 4.0,
+      "min": 36.7,
+      "median": 57.8,
+      "max": 83.4
+    },
+    "face": {
+      "n": 4.0,
+      "min": 14.5,
+      "median": 16.7,
+      "max": 19.6
+    }
+  },
+  "timing_note": "已预热 1 轮后统计；单次测量，未做多次采样；T_ocr 的正式值以 scripts/bench_ocr.py 为准",
+  "warmup_runs": 1,
+  "skipped": [],
+  "detail": [
+    {
+      "image_id": "clean_001",
+      "gt": 0,
+      "pred": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "type_ok": 0,
+      "matches": [],
+      "missed": [],
+      "extra": [],
+      "skipped": [],
+      "warnings": []
+    },
+    {
+      "image_id": "express_001",
+      "gt": 3,
+      "pred": 3,
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "type_ok": 3,
+      "matches": [
+        {
+          "gt_id": "g-qr-1",
+          "pred_id": "det-qr-001",
+          "gt_subtype": "qr_link",
+          "pred_subtype": "qr_link",
+          "iou": 0.7617,
+          "subtype_ok": true
+        },
+        {
+          "gt_id": "g-idcard-1",
+          "pred_id": "det-idcard-001",
+          "gt_subtype": "idcard",
+          "pred_subtype": "idcard",
+          "iou": 0.553,
+          "subtype_ok": true
+        },
+        {
+          "gt_id": "g-phone-1",
+          "pred_id": "det-phone-001",
+          "gt_subtype": "phone",
+          "pred_subtype": "phone",
+          "iou": 0.894,
+          "subtype_ok": true
+        }
+      ],
+      "missed": [],
+      "extra": [],
+      "skipped": [],
+      "warnings": []
+    },
+    {
+      "image_id": "idcard_001",
+      "gt": 1,
+      "pred": 1,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "type_ok": 1,
+      "matches": [
+        {
+          "gt_id": "g-idcard-1",
+          "pred_id": "det-idcard-001",
+          "gt_subtype": "idcard",
+          "pred_subtype": "idcard",
+          "iou": 0.5407,
+          "subtype_ok": true
+        }
+      ],
+      "missed": [],
+      "extra": [],
+      "skipped": [],
+      "warnings": []
+    },
+    {
+      "image_id": "qr_wifi_001",
+      "gt": 1,
+      "pred": 1,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "type_ok": 1,
+      "matches": [
+        {
+          "gt_id": "g-qr-1",
+          "pred_id": "det-qr-001",
+          "gt_subtype": "qr_wifi",
+          "pred_subtype": "qr_wifi",
+          "iou": 0.7656,
+          "subtype_ok": true
+        }
+      ],
+      "missed": [],
+      "extra": [],
+      "skipped": [],
+      "warnings": []
+    }
+  ],
+  "note": "合成样本（make_sample.py 生成），数字只证明管线连通，不代表真实场景能力"
+}

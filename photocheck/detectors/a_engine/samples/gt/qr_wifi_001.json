@@ -1,0 +1,23 @@
+{
+  "image_id": "qr_wifi_001",
+  "image": "qr_wifi_001.png",
+  "width": 560,
+  "height": 640,
+  "source": "synthetic_generated",
+  "generator": "scripts/make_sample.py",
+  "objects": [
+    {
+      "gt_id": "g-qr-1",
+      "kind": "qr",
+      "subtype": "qr_wifi",
+      "bbox": [
+        120,
+        110,
+        320,
+        320
+      ]
+    }
+  ],
+  "negative": false,
+  "note": "真值由生成参数直接记录，非检测结果反推；不含号码明文。"
+}

@@ -1,0 +1,81 @@
+{
+  "image_descriptor": {
+    "contract_version": "photocheck/v4",
+    "record_type": "ImageDescriptor",
+    "image_id": "express_001",
+    "width": 900,
+    "height": 620,
+    "orientation": "exif_transposed",
+    "coordinate_space": "top_left_pixels"
+  },
+  "detections": [
+    {
+      "contract_version": "photocheck/v4",
+      "record_type": "Detection",
+      "id": "det-phone-001",
+      "image_id": "express_001",
+      "kind": "text",
+      "subtype": "phone",
+      "bbox": [
+        232,
+        242,
+        162,
+        22
+      ],
+      "detector_score": 0.9991,
+      "evidence": "ocr_rule",
+      "risk": 2,
+      "details": {
+        "masked_preview": "138****8000"
+      }
+    },
+    {
+      "contract_version": "photocheck/v4",
+      "record_type": "Detection",
+      "id": "det-qr-001",
+      "image_id": "express_001",
+      "kind": "qr",
+      "subtype": "qr_link",
+      "bbox": [
+        654,
+        314,
+        192,
+        192
+      ],
+      "detector_score": null,
+      "evidence": "qr_payload",
+      "risk": 1,
+      "details": {
+        "decodable": true,
+        "safe_domain": "example.com"
+      }
+    },
+    {
+      "contract_version": "photocheck/v4",
+      "record_type": "Detection",
+      "id": "det-idcard-001",
+      "image_id": "express_001",
+      "kind": "text",
+      "subtype": "idcard",
+      "bbox": [
+        249,
+        436,
+        275,
+        21
+      ],
+      "detector_score": 0.9998,
+      "evidence": "ocr_rule",
+      "risk": 3,
+      "details": {
+        "masked_preview": "1101**********0011",
+        "idcard_check": "pass"
+      }
+    }
+  ],
+  "warnings": [],
+  "timings_ms": {
+    "text": 5918.9,
+    "qr": 72.3,
+    "face": 2703.3
+  }
+}

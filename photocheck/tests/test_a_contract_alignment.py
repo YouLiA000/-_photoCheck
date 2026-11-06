@@ -34,7 +34,7 @@ def detection(
         image_id="image-1",
         kind=kind,
         subtype=subtype,
-        bbox=(10, 20, 100, 30),
+        bbox=None if kind == "meta" else (10, 20, 100, 30),
         detector_score=0.9,
         risk=2,
         details=details if details is not None else {"masked_preview": "138****8000"},
@@ -62,6 +62,55 @@ class AContractTests(unittest.TestCase):
     def test_phone_mask_cannot_keep_separated_plaintext(self) -> None:
         with self.assertRaises(framework.ContractError):
             detection(details={"masked_preview": "138-0013-8000"})
+
+    def test_idcard_mask_can_end_with_x(self) -> None:
+        item = detection(
+            kind="text",
+            subtype="idcard",
+            details={
+                "masked_preview": "1101**********001X",
+                "idcard_check": "pass",
+            },
+        )
+        self.assertEqual(item.details["masked_preview"], "1101**********001X")
+
+    def test_idcard_mask_normalizes_lowercase_x(self) -> None:
+        item = detection(
+            kind="text",
+            subtype="idcard",
+            details={
+                "masked_preview": "1101**********001x",
+                "idcard_check": "pass",
+            },
+        )
+        self.assertEqual(item.details["masked_preview"], "1101**********001X")
+
+    def test_idcard_mask_still_requires_correct_shape(self) -> None:
+        with self.assertRaises(framework.ContractError):
+            detection(
+                kind="text",
+                subtype="idcard",
+                details={
+                    "masked_preview": "1101**********0X",
+                    "idcard_check": "pass",
+                },
+            )
+
+    def test_meta_datetime_preview_is_not_treated_as_plaintext(self) -> None:
+        item = detection(
+            kind="meta",
+            subtype="datetime",
+            details={"masked_preview": "2024-06-01"},
+        )
+        self.assertEqual(item.details["masked_preview"], "2024-06-01")
+
+    def test_meta_preview_with_long_digit_run_is_rejected(self) -> None:
+        with self.assertRaises(framework.ContractError):
+            detection(
+                kind="meta",
+                subtype="serial",
+                details={"masked_preview": "1234567890"},
+            )
 
     def test_qr_summary_is_rejected(self) -> None:
         with self.assertRaises(framework.ContractError):
@@ -141,9 +190,16 @@ class AContractTests(unittest.TestCase):
                 output_dir=temp_dir,
                 detections=detections,
                 decisions=decisions,
+                content_probe=lambda image, bbox, *, kinds: {
+                    "residual_text": 0,
+                    "residual_qr_detected": 0,
+                    "residual_qr_decodable": 0,
+                    "residual_face": 0,
+                    "unavailable": [],
+                },
             )
             self.assertTrue(result.export.output_path.is_file())
-            self.assertEqual(result.verification["disposal_state"], "pending")
+            self.assertEqual(result.verification["disposal_state"], "passed")
         ingested.close()
 
     def test_a_and_b_both_access_schema(self) -> None:
