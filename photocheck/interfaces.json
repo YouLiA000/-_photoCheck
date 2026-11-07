@@ -1,0 +1,36 @@
+{
+  "manifest_version": "photocheck/interfaces/v1",
+  "package_root": "photocheck",
+  "contract_version": "photocheck/v4",
+  "entries": {
+    "ingest": {
+      "module": "photocheck.core.ingest",
+      "function": "ingest_image"
+    },
+    "detect": {
+      "module": "photocheck.detectors.a_adapter",
+      "function": "analyze_a"
+    },
+    "probe": {
+      "module": "photocheck.detectors.a_adapter",
+      "function": "probe_a_region"
+    },
+    "redact": {
+      "module": "photocheck.core.redaction",
+      "function": "apply_redactions"
+    },
+    "plan": {
+      "module": "photocheck.contract.workflow",
+      "function": "build_redaction_plan"
+    },
+    "process": {
+      "module": "photocheck.core.pipeline",
+      "function": "process_and_export"
+    },
+    "full_recheck": {
+      "module": "photocheck.core.full_recheck",
+      "function": "full_file_recheck"
+    }
+  },
+  "contract_schema": "photocheck/contract/schema/photocheck-v4.schema.json"
+}

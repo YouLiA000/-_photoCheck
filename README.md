@@ -35,6 +35,13 @@ for current work.
 - NumPy 1.26.4
 - External ExifTool 13.61
 
+ExifTool 13.61 archive:
+
+```text
+https://exiftool.org/exiftool-13.61_64.zip
+SHA256 = AB75B37515385A753AA60A58F68FFFFE1FF81E43B319DF9540978FB19E0580E5
+```
+
 ExifTool is a required external prerequisite for both metadata detection and
 export verification. Run the preflight before using PhotoCheck:
 
@@ -42,11 +49,17 @@ export verification. Run the preflight before using PhotoCheck:
 python photocheck/scripts/check_environment.py
 ```
 
-Install Python dependencies:
+Install the full runtime into an isolated Python 3.11 environment:
 
 ```powershell
-python -m pip install -r requirements.txt
+powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1 `
+  -PythonPath C:\Python311\Python311\python.exe `
+  -VenvPath "D:\Program Files\PhotoCheck\venv" `
+  -InstallDev
 ```
+
+The bootstrap normalizes OpenCV to `opencv-contrib-python==4.10.0.84` after
+dependency resolution and then runs the environment preflight.
 
 ExifTool is an external program. Set `PHOTOCHECK_EXIFTOOL` to its executable, or
 install it at the default Windows path used by this project:
@@ -93,6 +106,7 @@ powershell -ExecutionPolicy Bypass -File scripts/build_release.ps1
 - [K-14 acceptance-machine evidence steps](docs/K14验收机器断网取证清单_2026-11-06.md)
 - [A synchronization checklist](docs/A同步修复清单_2026-11-06.md)
 - [C integration checklist](docs/C最小界面对接清单_2026-11-06.md)
+- [C task verification and B votes](docs/C任务核实与三人表决_B意见_2026-11-07.md)
 - [B integration package for A](docs/发给A_B集成测试包清单_2026-11-06.md)
 - [Package usage details](photocheck/README.md)
 

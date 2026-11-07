@@ -29,8 +29,24 @@ def _distribution_version(name: str) -> str | None:
         return None
 
 
+def assess_detector_status(status: dict[str, str]) -> tuple[list[str], list[str]]:
+    """Split P0 detector failures from the optional face capability."""
+
+    problems: list[str] = []
+    warnings: list[str] = []
+    for name in ("ocr", "qr"):
+        if status.get(name) != "ok":
+            problems.append(f"detector {name} unavailable: {status.get(name)}")
+    if status.get("face") != "ok":
+        warnings.append(
+            "detector face unavailable: K-07 uses not_applicable and manual boxes"
+        )
+    return problems, warnings
+
+
 def main() -> int:
     problems: list[str] = []
+    warnings: list[str] = []
 
     print(f"[python] {sys.version.split()[0]} ({sys.executable})")
     if sys.version_info[:2] != (3, 11):
@@ -65,9 +81,9 @@ def main() -> int:
     try:
         status = a_detector_status()
         print(f"[detectors] {status}")
-        for name in ("ocr", "qr", "face"):
-            if status.get(name) != "ok":
-                problems.append(f"detector {name} unavailable: {status.get(name)}")
+        detector_problems, detector_warnings = assess_detector_status(status)
+        problems.extend(detector_problems)
+        warnings.extend(detector_warnings)
     except Exception as exc:
         print(f"[detectors] unavailable: {type(exc).__name__}: {exc}")
         problems.append("A detector engine cannot be imported")
@@ -77,7 +93,12 @@ def main() -> int:
         for problem in problems:
             print(f"  - {problem}")
         return 1
-    print("\n[environment] OK")
+    if warnings:
+        print(f"\n[environment] OK ({len(warnings)} warning)")
+        for warning in warnings:
+            print(f"  - {warning}")
+    else:
+        print("\n[environment] OK")
     return 0
 
 

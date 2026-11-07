@@ -117,6 +117,15 @@ both A-side and B-side contract validation before returning an `AEnvelope`.
 `probe_a_region()` exposes QR `detected`/`decodable` evidence separately for
 K-09c integration.
 
+Machine-readable integration manifest:
+
+```text
+photocheck/interfaces.json
+```
+
+C's auditors should resolve functions from this manifest instead of assuming a
+top-level `src/` directory or a function named `redact`.
+
 Audit a new A archive before integration:
 
 ```powershell
